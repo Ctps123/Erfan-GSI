@@ -16,7 +16,7 @@ on:
         required: true
         default: 'Generic'
 env:
-  TELEGRAM_TO: 1214932938
+  TELEGRAM_TO: 4013599849
   TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
 
 jobs:
@@ -81,19 +81,19 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/ErfanGSIs
           pwd
-          7za a -mmt16 -t7z -r tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }} output/*
-          ls "tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }}"
+          7za a -mmt16 -t7z -r scorpion_${{ github.event.inputs.REPACK_NAME }} output/*
+          ls "scorpion_${{ github.event.inputs.REPACK_NAME }}"
           mkdir upload_ab
           ls upload_ab
-          if [ $(ls -l tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }} | awk '{print $5}') -gt 2147483647 ]; then tar cvzpf - tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }} | split -d -b 1024m - upload_ab/tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }}; else mv tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }} upload_ab/tosasitillGSI0202_${{ github.event.inputs.REPACK_NAME }}; fi
+          if [ $(ls -l scorpion_${{ github.event.inputs.REPACK_NAME }} | awk '{print $5}') -gt 2147483647 ]; then tar cvzpf - scorpion_${{ github.event.inputs.REPACK_NAME }} | split -d -b 1024m - upload_ab/scorpion_${{ github.event.inputs.REPACK_NAME }}; else mv scorpion_${{ github.event.inputs.REPACK_NAME }} upload_ab/scorpion_${{ github.event.inputs.REPACK_NAME }}; fi
 
       - name: 发送 Telegram 提醒消息 2/2
         uses: appleboy/telegram-action@master
         with:
-            to: 1214932938
+            to: 4013599849
             token: ${{ secrets.TELEGRAM_TOKEN }}
-            message: tosasitill GSI 构建成功!
-              构建 GSI 详细信息如下！
+            message: scorpion GSI 
+              GSI
             document: ${{ github.workspace }}/ErfanGSIs/build_info.txt
 
       - name: 上传至 Github Releases
