@@ -1,0 +1,110 @@
+name: scorpion
+
+on:
+  workflow_dispatch:
+    inputs:
+      ROM_URL:
+        description: 'Direct link/直链'
+        required: true
+        default: 'https://mirrorbits.lineageos.org/full/sagit/20230302/lineage-20.0-20230302-nightly-sagit-signed.zip'
+      REPACK_NAME:
+        description: 'Compressed name/打包名称'
+        required: true
+        default: 'Compressed.7z'
+      ROM_TYPE:
+        description: 'ROM type/ROM 类型'
+        required: true
+        default: 'Generic'
+
+env:
+  TELEGRAM_TO: -4013599849
+  TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+
+jobs:
+  build_tosasitill_GSI:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@main
+        with:
+          path: ErfanGSIs
+
+      - name: Set environment variables
+        run: |
+          echo "BUILD_TIME=$(date +%s | md5sum | awk '{print substr($1,1,10)}')" >> $GITHUB_ENV
+          echo "BUILD_sTIME=$(TZ=Asia/Shanghai date -d @$(date +%s) +'%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+
+      - name: Send Telegram notification 1/2
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ env.TELEGRAM_TO }}
+          token: ${{ env.TELEGRAM_TOKEN }}
+          message: |
+            Scorpion GSI!
+            Build start time: ${{ env.BUILD_sTIME }}
+            ROM URL: ${{ github.event.inputs.ROM_URL }}
+            GSI Type: ${{ github.event.inputs.ROM_TYPE }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git wget gzip unzip curl axel aria2 zstd rename p7zip-full pigz
+
+      - name: Fetch ErfanGSI tools
+        uses: actions/checkout@main
+        with:
+          repository: FoxetGSI/FoxetGSI-tool
+          path: ErfanGSIs
+
+      - name: Set permissions
+        run: |
+          sudo chmod 777 -R $GITHUB_WORKSPACE/ErfanGSIs
+
+      - name: Patch for unexpected exits
+        run: |
+          sed -i 's/\|\| exit 1//g' ErfanGSIs/url2GSI.sh
+          sed -i 's/exit 1//g' ErfanGSIs/url2GSI.sh
+
+      - name: Setup ErfanGSI environment
+        run: |
+          sed -i 's/USE_MIRROR_FOR_PIP=true/USE_MIRROR_FOR_PIP=false/' $GITHUB_WORKSPACE/ErfanGSIs/setup.sh
+          bash $GITHUB_WORKSPACE/ErfanGSIs/setup.sh
+          sudo apt install -y openjdk-11-jdk
+          java -version
+          pip3 install aligo
+
+      - name: Download ROM and create GSI
+        run: |
+          cd ${{ github.workspace }}/ErfanGSIs/
+          sudo bash ./url2GSI.sh --ab ${{ github.event.inputs.ROM_URL }} ${{ github.event.inputs.ROM_TYPE }}
+
+      - name: Compress GSI
+        if: ${{ github.event.inputs.ALI }} != '1'
+        run: |
+          cd $GITHUB_WORKSPACE/ErfanGSIs
+          7za a -mmt16 -t7z -r scorpion_${{ github.event.inputs.REPACK_NAME }} output/*
+          mkdir -p upload_ab
+          if [ $(ls -l scorpion_${{ github.event.inputs.REPACK_NAME }} | awk '{print $5}') -gt 2147483647 ]; then
+            tar cvzpf - scorpion_${{ github.event.inputs.REPACK_NAME }} | split -d -b 1024m - upload_ab/scorpion_${{ github.event.inputs.REPACK_NAME }}
+          else
+            mv scorpion_${{ github.event.inputs.REPACK_NAME }} upload_ab/
+          fi
+
+      - name: Send Telegram notification 2/2
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ env.TELEGRAM_TO }}
+          token: ${{ env.TELEGRAM_TOKEN }}
+          message: |
+            Scorpion GSI build completed!
+          document: ${{ github.workspace }}/ErfanGSIs/build_info.txt
+
+      - name: Upload to GitHub Releases
+        if: ${{ github.event.inputs.ALI }} != '1'
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          artifacts: "${{ github.workspace }}/ErfanGSIs/upload_ab/*"
+          tag: "${{ github.event.inputs.REPACK_NAME }}_${{ env.BUILD_TIME }}"
+          bodyFile: "${{ github.workspace }}/ErfanGSIs/output/build_info.txt"
+          token: ${{ secrets.GITHUB_TOKEN }}
