@@ -70,6 +70,7 @@ jobs:
         run: |
           sed -i 's/USE_MIRROR_FOR_PIP=true/USE_MIRROR_FOR_PIP=false/' $GITHUB_WORKSPACE/ErfanGSIs/setup.sh
           bash $GITHUB_WORKSPACE/ErfanGSIs/setup.sh
+          find / -name "requirements.txt" 2>/dev/null
           sudo apt install -y openjdk-11-jdk
           java -version
           pip3 install aligo
