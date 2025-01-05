@@ -16,7 +16,7 @@ on:
         required: true
         default: 'Generic'
 env:
-  TELEGRAM_TO: 4013599849
+  TELEGRAM_TO: -4013599849
   TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
 
 jobs:
@@ -90,7 +90,7 @@ jobs:
       - name: 发送 Telegram 提醒消息 2/2
         uses: appleboy/telegram-action@master
         with:
-            to: 4013599849
+            to: -4013599849
             token: ${{ secrets.TELEGRAM_TOKEN }}
             message: scorpion GSI 
               GSI
